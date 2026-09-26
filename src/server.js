@@ -7,6 +7,13 @@ const app = express();
 app.use(express.json());
 app.use(requestLogger);
 
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        status: 'OK'
+    });
+});
+
 // Routes import
 const userRouter = require("./routes/userRoute");
 const documentRouter = require("./routes/documentRoute");

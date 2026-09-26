@@ -1,619 +1,343 @@
-# Student Document Upload & Monitoring System
+# Advanced Node.js + AWS Production Architecture
 
-## 1. Project Overview
+Scalable Document Processing & Monitoring Platform
 
-This project is a Node.js and Express-based Document Upload & Monitoring System.
-
-The application allows users to:
-
-* Create users
-* Upload documents
-* Store documents in AWS S3
-* Store document metadata in MySQL
-* Send SNS email notifications
-* Generate S3 presigned URLs
-* Monitor application logs using AWS CloudWatch
-* Monitor custom CloudWatch metrics
-* Trigger CloudWatch alarms for upload failures
+A production-style Node.js application deployed on AWS with secure document uploads, monitoring, auto scaling, and high availability.
 
 ---
 
-## 2. Technology Stack
+## Project Overview
+
+This project demonstrates a production-ready architecture where users can upload documents securely to Amazon S3, receive SNS notifications, monitor the application using CloudWatch, and maintain high availability using an Application Load Balancer and Auto Scaling Group.
+
+### Features
+
+* User Registration & Login (JWT Authentication)
+* Secure PDF/JPG/JPEG/PNG Upload (Max 10MB)
+* Amazon S3 Private Storage
+* Pre-Signed Download URLs
+* Document Metadata Storage (MySQL)
+* Amazon SNS Email Notification
+* CloudWatch Logs
+* Custom CloudWatch Metrics
+* CloudWatch Dashboard
+* CloudWatch Alarms
+* Application Load Balancer
+* Auto Scaling Group
+* High Availability Architecture
+
+---
+
+## Architecture
+
+`Internet → ALB → Auto Scaling Group → EC2 (Node.js) → MySQL + S3 → SNS → CloudWatch`
+
+---
+
+## AWS Services Used
+
+| Service         | Purpose                          |
+| --------------- | -------------------------------- |
+| EC2             | Node.js Application Hosting      |
+| S3              | Secure Document Storage          |
+| SNS             | Email Notifications              |
+| CloudWatch      | Logs, Metrics, Dashboard, Alarms |
+| ALB             | Traffic Distribution             |
+| Auto Scaling    | Automatic Scaling                |
+| IAM Role        | Secure AWS Access                |
+| Security Groups | Network Security                 |
+
+---
+
+## Project Structure
+
+```text
+project/
+├── server.js
+├── package.json
+├── .env
+├── controllers/
+├── routes/
+├── middleware/
+├── models/
+├── uploads/
+└── utils/
+```
+
+---
+
+## Prerequisites
 
 * Node.js
-* Express.js
+* npm
 * MySQL
-* AWS S3
-* AWS SNS
-* AWS CloudWatch Logs
-* AWS CloudWatch Metrics
-* AWS CloudWatch Alarm
-* Multer
-* Postman
-* dotenv
+* AWS Account
+* EC2 Instance
+* S3 Bucket
+* SNS Topic
+* IAM Role
 
 ---
 
-## 3. Application Architecture
+## Local Setup
 
-```text
-Client / Postman
-       |
-       v
-Node.js + Express
-       |
-       +------------> MySQL
-       |
-       +------------> AWS S3
-       |                 |
-       |                 v
-       |            Document File
-       |
-       +------------> AWS SNS
-       |                 |
-       |                 v
-       |               Email
-       |
-       +------------> CloudWatch
-                         |
-                 +-------+-------+
-                 |               |
-               Logs           Metrics
-                                 |
-                                 v
-                               Alarm
-                                 |
-                                 v
-                                SNS
-                                 |
-                                 v
-                               Email
+### Clone Repository
+
+```bash
+git clone YOUR_REPOSITORY_URL
+cd YOUR_PROJECT
 ```
 
----
-
-## 4. Project Structure
-
-```text
-document-system/
-│
-├── src/
-│   ├── config/
-│   │   ├── aws.config.js
-│   │   └── db.js
-│   │
-│   ├── controllers/
-│   │   ├── user.controller.js
-│   │   └── document.controller.js
-│   │
-│   ├── middleware/
-│   │   ├── upload.middleware.js
-│   │   └── error.middleware.js
-│   │
-│   ├── routes/
-│   │   ├── user.routes.js
-│   │   └── document.routes.js
-│   │
-│   ├── services/
-│   │   ├── s3.service.js
-│   │   ├── sns.service.js
-│   │   └── cloudwatch.service.js
-│   │
-│   ├── utils/
-│   │   └── logger.js
-│   │
-│   |
-│   └── server.js
-│
-├── .env
-├── .gitignore
-├── package.json
-└── README.md
-```
-
----
-
-## 5. Database Setup
-
-Database name:
-
-```text
-document_system
-```
-
-### Users Table
-
-```sql
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(150) NOT NULL UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Documents Table
-
-```sql
-CREATE TABLE documents (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    original_name VARCHAR(255) NOT NULL,
-    s3_key VARCHAR(500) NOT NULL,
-    s3_url VARCHAR(1000),
-    file_size INT NOT NULL,
-    mime_type VARCHAR(100) NOT NULL,
-    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
----
-
-## 6. AWS S3
-
-Documents are uploaded to AWS S3.
-
-Object structure:
-
-```text
-documents/
-├── user-1/
-│   ├── resume.pdf
-│   └── marksheet.pdf
-│
-└── user-2/
-    └── resume.pdf
-```
-
-Allowed file types:
-
-* PDF
-* JPG
-* JPEG
-* PNG
-
-Maximum file size:
-
-```text
-5 MB
-```
-
-Files are uploaded directly to S3 using Multer memory storage.
-
----
-
-## 7. AWS SNS
-
-SNS topic:
-
-```text
-document-upload-notification
-```
-
-After a successful document upload, the application publishes a notification to the SNS topic.
-
-The subscribed email receives the notification.
-
-The project also supports S3 Event Notifications → SNS as an advanced configuration.
-
----
-
-## 8. CloudWatch Logs
-
-CloudWatch Log Group:
-
-```text
-/student-document-system
-```
-
-Log Stream:
-
-```text
-document-system-server
-```
-
-Important application logs include:
-
-```text
-Server started
-Upload started
-S3 upload successful
-Document metadata saved successfully
-SNS notification sent successfully
-SNS notification failed
-Document upload failed
-```
-
----
-
-## 9. CloudWatch Custom Metrics
-
-Namespace:
-
-```text
-StudentDocumentSystem
-```
-
-Metrics:
-
-```text
-DocumentsUploaded
-DocumentsUploadFailed
-SNSNotificationsSent
-SNSNotificationsFailed
-```
-
-These metrics are used to monitor application activity and failures.
-
----
-
-## 10. CloudWatch Alarm
-
-Alarm name:
-
-```text
-DocumentUploadFailureAlarm
-```
-
-Condition:
-
-```text
-DocumentsUploadFailed >= 5
-within 5 minutes
-```
-
-When the alarm enters the ALARM state, SNS sends a notification to the configured email subscription.
-
----
-
-## 11. S3 Presigned URL
-
-The application generates temporary presigned URLs for accessing uploaded documents.
-
-Example:
-
-```text
-GET /api/documents/:id
-```
-
-The response contains:
-
-```json
-{
-  "success": true,
-  "data": {
-    "presignedUrl": "https://..."
-  }
-}
-```
-
-The generated URL is temporary and expires after the configured duration.
-
----
-
-## 12. Environment Variables
-
-Create a `.env` file:
-
-```env
-PORT=5000
-
-AWS_REGION=your_aws_region
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_S3_BUCKET=your_bucket_name
-AWS_SNS_TOPIC_ARN=your_sns_topic_arn
-
-AWS_CLOUDWATCH_LOG_GROUP=/student-document-system
-AWS_CLOUDWATCH_LOG_STREAM=document-system-server
-```
-
-MySQL configuration:
-
-```text
-host=localhost
-user=root
-password=your_mysql_password
-database=document_system
-```
-
-Never commit the real `.env` file or AWS secret credentials to GitHub.
-
----
-
-## 13. Installation
-
-Clone the project and install dependencies:
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
-Start the development server:
+### Create Environment File
+
+Create `.env`
+
+```env
+PORT=5000
+
+DB_HOST=YOUR_DB_HOST
+DB_USER=YOUR_DB_USER
+DB_PASSWORD=YOUR_DB_PASSWORD
+DB_NAME=YOUR_DB_NAME
+
+AWS_REGION=ap-south-1
+S3_BUCKET=YOUR_BUCKET_NAME
+SNS_TOPIC_ARN=YOUR_SNS_TOPIC
+JWT_SECRET=YOUR_SECRET
+```
+
+### Start Application
 
 ```bash
-npm run dev
+npm start
 ```
 
-The application runs on:
+---
+
+## EC2 Deployment
+
+### Connect EC2
+
+```bash
+ssh -i "myServerKey.pem" ec2-user@PUBLIC_IP
+```
+
+### Install Node.js
+
+```bash
+sudo dnf update -y
+sudo dnf install nodejs git -y
+```
+
+### Install PM2
+
+```bash
+sudo npm install -g pm2
+pm2 start server.js --name node-app
+pm2 save
+pm2 startup
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint                      |
+| ------ | ----------------------------- |
+| POST   | `/api/auth/register`          |
+| POST   | `/api/auth/login`             |
+| POST   | `/api/documents/upload`       |
+| GET    | `/api/documents`              |
+| GET    | `/api/documents/:id/download` |
+| DELETE | `/api/documents/:id`          |
+| GET    | `/api/health`                 |
+| GET    | `/api/ready`                  |
+
+---
+
+## S3 Security
+
+* Block Public Access Enabled
+* Private Bucket
+* Server-Side Encryption Enabled
+* User-specific Object Prefixes
+* Pre-Signed Download URLs
+
+---
+
+## Monitoring
+
+### CloudWatch Logs
+
+Structured JSON logs contain:
+
+* timestamp
+* level
+* requestId
+* route
+* statusCode
+* duration
+
+### Custom Metrics
+
+* UploadSuccessCount
+* UploadFailureCount
+* SNSPublishFailureCount
+* S3OperationFailureCount
+
+---
+
+## CloudWatch Dashboard
+
+Dashboard includes:
+
+* ALB Request Count
+* Target Response Time
+* HTTP 4XX
+* HTTP 5XX
+* EC2 CPU Utilization
+* Network In
+* Network Out
+* Upload Success
+* Upload Failure
+* SNS Failure
+
+---
+
+## CloudWatch Alarms
+
+| Alarm          | Threshold            |
+| -------------- | -------------------- |
+| EC2 CPU        | >70%                 |
+| ALB 5XX        | Above Threshold      |
+| High Latency   | Target Response Time |
+| Upload Failure | Above Threshold      |
+
+SNS Email notifications are configured for all alarms.
+
+---
+
+## Load Balancer
+
+* Internet-facing Application Load Balancer
+* HTTP Listener
+* Target Group Health Check
 
 ```text
-http://localhost:5000
+/api/health
 ```
 
 ---
 
-## 14. API Documentation
+## Auto Scaling
 
-### Create User
+| Setting | Value |
+| ------- | ----- |
+| Minimum | 2     |
+| Desired | 2     |
+| Maximum | 4     |
 
-```http
-POST /api/users
-```
+Scaling Policy:
 
-Body:
-
-```json
-{
-  "name": "Test User",
-  "email": "test@example.com"
-}
-```
+* Target Tracking
+* Average CPU Utilization: 70%
 
 ---
 
-### Get User
+## Security
 
-```http
-GET /api/users/:id
-```
-
-Example:
-
-```text
-GET /api/users/1
-```
+* IAM Role for EC2
+* Least Privilege Access
+* Private S3 Bucket
+* JWT Authentication
+* File Validation
+* Security Groups
+* No AWS Access Keys Stored
 
 ---
 
-### Upload Document
+## Load Testing
 
-```http
-POST /api/documents/upload
+Tool used:
+
+* k6
+
+Run:
+
+```bash
+k6 run loadtest.js
 ```
 
-Content-Type:
+Observed:
 
-```text
-multipart/form-data
-```
-
-Fields:
-
-```text
-userId
-document
-```
+* Request Count Increased
+* CPU Utilization Changed
+* Dashboard Updated
+* No Application Downtime
 
 ---
 
-### Get User Documents
+## Cost Optimization
 
-```http
-GET /api/documents/user/:userId
-```
-
-Example:
-
-```text
-GET /api/documents/user/1
-```
+* t2.micro EC2
+* Auto Scaling
+* Private S3 Storage
+* CloudWatch Log Retention
+* Minimal AWS Resources
 
 ---
 
-### Get Document
+## Failure Recovery
 
-```http
-GET /api/documents/:id
-```
-
-Example:
-
-```text
-GET /api/documents/1
-```
-
-This endpoint also generates a temporary S3 presigned URL.
+| Scenario         | Recovery                           |
+| ---------------- | ---------------------------------- |
+| EC2 Failure      | Auto Scaling launches new instance |
+| Unhealthy Target | ALB removes traffic                |
+| Upload Failure   | CloudWatch Alarm + SNS             |
+| High CPU         | Scale Out                          |
 
 ---
 
-### Delete Document
+## Testing Checklist
 
-```http
-DELETE /api/documents/:id
-```
-
-Example:
-
-```text
-DELETE /api/documents/1
-```
-
-The document is deleted from S3 and its metadata is deleted from MySQL.
-
----
-
-## 15. Error Handling
-
-The application handles:
-
-* Missing user ID
-* Missing document
-* Invalid file type
-* File larger than 5 MB
-* S3 upload failure
-* Database failure
-* SNS notification failure
-* Document not found
-* S3 delete failure
+* User Registration
+* User Login
+* Document Upload
+* Document Download
+* Document Delete
+* Health Endpoint
+* ALB Access
+* Auto Scaling Test
+* CloudWatch Dashboard
+* Alarm Notification
+* Load Testing
 
 ---
 
-## 16. Testing Scenarios
+## Project Deliverables
 
-The following scenarios were tested:
-
-1. Successful user creation
-2. Successful document upload
-3. Invalid file type
-4. File larger than 5 MB
-5. Multiple users uploading documents
-6. Fetch user documents
-7. Fetch individual document
-8. Delete document
-9. S3 document storage
-10. SNS notification
-11. CloudWatch logs
-12. CloudWatch metrics
-13. CloudWatch alarm
-14. Presigned URL access
+* Complete Node.js Source Code
+* AWS Deployment
+* S3 Configuration
+* SNS Configuration
+* CloudWatch Dashboard
+* CloudWatch Alarms
+* ALB & Target Group
+* Auto Scaling Group
+* Load Test Report
+* Cost Estimate
+* Architecture Diagram
 
 ---
 
-## 17. Security
+## Author
 
-* AWS credentials are stored in environment variables.
-* `.env` is excluded from Git.
-* File type validation is implemented.
-* File size is limited to 5 MB.
-* S3 is used for document storage instead of permanent local storage.
-* IAM permissions should follow the least-privilege principle.
+**Satyam Patel**
 
----
-
-## 18. AWS Monitoring Flow
-
-```text
-Document Upload
-      |
-      v
-S3 Upload
-      |
-      v
-CloudWatch Metrics
-      |
-      v
-DocumentsUploaded
-
-If upload fails
-      |
-      v
-DocumentsUploadFailed
-      |
-      v
-5 failures / 5 minutes
-      |
-      v
-CloudWatch Alarm
-      |
-      v
-SNS
-      |
-      v
-Email Notification
-```
-
----
-
-## 19. Final Deliverables
-
-The project submission includes:
-
-* GitHub repository
-* Source code
-* Database schema
-* Sample database data
-* S3 configuration
-* SNS topic and subscription
-* SNS notification screenshot
-* CloudWatch logs
-* CloudWatch custom metrics
-* CloudWatch dashboard
-* CloudWatch alarm
-* Postman API collection
-* README documentation
-* Testing evidence
-* Architecture explanation
-
-## Policy Type
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "S3BucketAccess",
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::student-document-system-satyam",
-        "arn:aws:s3:::student-document-system-satyam/*"
-      ]
-    },
-    {
-      "Sid": "S3GlobalAccess",
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListAllMyBuckets"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "SNSPublishAccess",
-      "Effect": "Allow",
-      "Action": [
-        "sns:Publish"
-      ],
-      "Resource": "arn:aws:sns:ap-south-1:399779591596:document-upload-notification"
-    },
-    {
-      "Sid": "CloudWatchMonitoringAccess",
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "cloudwatch:PutMetricData"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "CloudWatchReadOnlyAccess",
-      "Effect": "Allow",
-      "Action": [
-        "cloudwatch:Get*",
-        "cloudwatch:List*",
-        "cloudwatch:Describe*"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "CloudWatchLogsReadOnlyAccess",
-      "Effect": "Allow",
-      "Action": [
-        "logs:Describe*",
-        "logs:Get*",
-        "logs:List*",
-        "logs:FilterLogEvents",
-        "logs:StartQuery",
-        "logs:StopQuery",
-        "logs:TestMetricFilter"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
+Advanced Node.js + AWS Production Architecture Assignment
