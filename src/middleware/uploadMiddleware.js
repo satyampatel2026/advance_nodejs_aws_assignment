@@ -1,26 +1,47 @@
-const multer=require("multer");
-const storage= multer.memoryStorage();
+const multer = require("multer");
+const path = require("path");
 
-const fileFilter=(req,file,cb)=>{
-    const allowedTypes= [
-        "application/pdf",
-        "image/jpeg",
-        "image/png"
-    ];
+const storage = multer.memoryStorage();
 
-    if(allowedTypes.includes(file.mimetype)){
-        cb(null,true)
-    }else{
-        cb(new Error("only jpeg,pdf and png are allowed"),false)
+const allowedMimeTypes = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+];
+
+const allowedExtensions = [
+  ".pdf",
+  ".jpg",
+  ".jpeg",
+  ".png",
+];
+
+const upload = multer({
+  storage,
+
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
+
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    const isMimeTypeAllowed = allowedMimeTypes.includes(
+      file.mimetype
+    );
+
+    const isExtensionAllowed = allowedExtensions.includes(ext);
+
+    if (!isMimeTypeAllowed || !isExtensionAllowed) {
+      return cb(
+        new Error(
+          "Only PDF, JPG, JPEG and PNG files are allowed."
+        )
+      );
     }
-};
 
-const upload=multer({
-    storage:storage,
-    limits:{
-        fileSize: 5*1024*1024,
-    },
-    fileFilter:fileFilter
+    cb(null, true);
+  },
 });
 
-module.exports=upload;
+module.exports = upload;

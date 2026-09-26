@@ -1,20 +1,29 @@
-const jwt=require('jsonwebtoken');
+const jwt =require ("jsonwebtoken");
 
-const protect=(req,res,next)=>{
-    let token;
-    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
-       try{
-        token=req.headers.authorization.split(' ')[1];
-        const decoded=jwt.verify(token,process.env.JWT_SECRET || "sp");
-        req.user=decoded;
-        next();
-       }catch(error){
-        console.error('JWT Verification error',error.message);
-        return res.status(401).json({error:"Not Authorised, token failed"});
-       }
-    }
-    if(!token){
-        return res.status(401).json({error:"Not Authorised, no token provided"})
-    }
-}
-module.exports={protect};
+ const verifyToken = (req, res, next) => {
+  const auth = req.headers.authorization;
+
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return res.status(401).json({
+      success: false,
+      message: "Token required",
+    });
+  }
+
+  try {
+    const token = auth.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid token",
+    });
+  }
+};
+
+module.exports=verifyToken;

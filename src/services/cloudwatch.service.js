@@ -11,7 +11,7 @@ const putMetric=async(metricName,value=1)=>{
     try{
      await cloudWatchClient.send(
         new PutMetricDataCommand({
-            Namespace:"StudentDocumentSystem",
+            Namespace:"/document-platform",
             MetricData:[{
                 MetricName:metricName,
                 Value:value,

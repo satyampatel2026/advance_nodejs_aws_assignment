@@ -1,5 +1,7 @@
 const {PutObjectCommand,DeleteObjectCommand,GetObjectCommand}=require("@aws-sdk/client-s3");
 const {getSignedUrl}=require('@aws-sdk/s3-request-presigner');
+const {v4: uuidv4}=require('uuid');
+const path = require("path");
 const s3Client=require('../config/awsConfig');
 
 const generatePresignedUrl=async(key)=>{
@@ -11,7 +13,16 @@ const generatePresignedUrl=async(key)=>{
     return url;
 }
 const uploadToS3=async(file,userId)=>{
-    const key= `documents/user-${userId}/${file.originalname}`;
+    const ext = path
+    .extname(file.originalname)
+    .toLowerCase();
+
+  const safeName = path
+    .basename(file.originalname, ext)
+    .replace(/[^a-zA-Z0-9-_]/g, "_");
+
+  const key = `documents/${userId}/${uuidv4()}-${safeName}${ext}`;
+  
     await s3Client.send( new PutObjectCommand({
         Bucket:process.env.AWS_S3_BUCKET,
         Key:key,
